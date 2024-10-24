@@ -26,9 +26,7 @@ jobs:
     - name: Build executable with shiv
       run: |
         shiv -c main -o dist/wgsetup \
-          --python '/usr/bin/env python3' \
-          --pyz-name wgsetup.pyz \
-          -r requirements.txt .
+          --python '/usr/bin/env python3' .
 
     - name: Create Release
       id: create_release
