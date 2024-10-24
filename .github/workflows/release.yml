@@ -1,0 +1,50 @@
+name: Build and Release wgsetup
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install shiv
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Build executable with shiv
+      run: |
+        shiv -c main -o dist/wgsetup \
+          --python '/usr/bin/env python3' \
+          --pyz-name wgsetup.pyz \
+          -r requirements.txt .
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/wgsetup
+        name: Release ${{ github.ref_name }}
+        body: |
+          Release ${{ github.ref_name }}
+          
+          ## Usage
+          Download the `wgsetup` executable and run it directly:
+          ```bash
+          chmod +x wgsetup
+          ./wgsetup
+          ```
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
