@@ -33,9 +33,10 @@ jobs:
 
     - name: Create Release
       id: create_release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         files: dist/wgsetup
         name: Release ${{ github.ref_name }}
         body: |
@@ -47,5 +48,3 @@ jobs:
           chmod +x wgsetup
           ./wgsetup
           ```
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
