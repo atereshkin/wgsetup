@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 import subprocess
 import sys
@@ -18,8 +19,9 @@ def run_locally(*args, input=None):
 
 class AbstractInstaller:
 
-    def __init__(self, runner, wg_listen_port=51290, server_address=None):
+    def __init__(self, runner, network=ipaddress.ip_network('10.12.1.0/24'), wg_listen_port=51290, server_address=None):
         self.run = runner
+        self.network = network
         self.wg_listen_port = wg_listen_port
         self.srv_private_key = None
         self.srv_public_key = None
@@ -48,13 +50,13 @@ class AbstractInstaller:
         return key.decode('utf-8').strip()
 
     def get_server_vpn_address(self):
-        return '10.12.0.1'  # TODO: make dynamic
+        return self.network.network_address + 1
 
     def get_client_vpn_address(self):
-        return '10.12.0.2'  # TODO: make dynamic
+        return self.get_server_vpn_address() + 1
 
-    def get_subnet(self):
-        return '10.12.0.2/32'  # TODO: make dynamic
+    def get_client_subnet(self):
+        return ipaddress.ip_network(self.get_client_vpn_address(), 32)
 
     def get_server_config(self):
         cfg = '[Interface]\n'
@@ -63,7 +65,7 @@ class AbstractInstaller:
         cfg += f'ListenPort = {self.wg_listen_port}\n\n'
         cfg += '[Peer]\n'
         cfg += f'PublicKey = {self.client_public_key}\n'
-        cfg += f'AllowedIPs = {self.get_subnet()}\n'
+        cfg += f'AllowedIPs = {self.get_client_subnet()}\n'
         return cfg
 
     def get_client_config(self):
@@ -90,6 +92,7 @@ class AbstractInstaller:
         log.debug('Generating client key')
         self.client_private_key = self.generate_private_key()
         self.client_public_key = self.get_public_key(self.client_private_key)
+        log.debug('Configuring WireGuard')
         self.configure_wireguard()
 
     def configure_wireguard(self):
@@ -123,7 +126,8 @@ class DebianInstaller(AbstractInstaller):
 
 def main():
     logging.getLogger('root').setLevel(logging.DEBUG)
-    i = DebianInstaller(runner=run_locally, server_address=sys.argv[1])
+    i = DebianInstaller(runner=run_locally,
+                        server_address=sys.argv[1])
     i.install()
     print('*********Client config************')
     print(i.get_client_config())
