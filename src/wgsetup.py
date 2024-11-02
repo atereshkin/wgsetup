@@ -3,6 +3,7 @@ import ipaddress
 import logging
 import socket
 import subprocess
+import sys
 
 log = logging.getLogger(__name__)
 
@@ -153,14 +154,17 @@ def main():
                              'This is where server and client(s) internal addresses will be allocated. '
                              '10.12.1.0/24 if not specified.')
     parser.add_argument('-p', '--port', type=int, default=51290, help='WireGuard port. Default is 51290.')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Print debug information')
     args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format='%(message)s')
     server_address = args.server_address
     if server_address is None:
         try:
             server_address = detect_ip()
         except:
-            print('Unable to detect server IP address. Use the -a/--server-address option.')
-    logging.getLogger('root').setLevel(logging.DEBUG)
+            log.error('Unable to detect server IP address. Use the -a/--server-address option.')
+            return
     i = DebianInstaller(runner=run_locally,
                         server_address=server_address,
                         network=args.network4,
