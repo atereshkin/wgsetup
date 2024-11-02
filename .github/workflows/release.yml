@@ -49,5 +49,5 @@ jobs:
           Download the `wgsetup` executable and run it directly:
           ```bash
           chmod +x wgsetup
-          ./wgsetup
+          sudo ./wgsetup
           ```
