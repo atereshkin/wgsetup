@@ -105,7 +105,6 @@ class AbstractInstaller:
             conf.write(self.get_server_config())
 
 
-
 class DebianInstaller(AbstractInstaller):
     def install_dependencies(self):
         self.run('apt-get', '-y', 'install', 'wireguard', 'nftables')
@@ -144,10 +143,9 @@ def detect_ip():
 
 
 def get_installer():
-    with open('/etc/issue', 'rt') as f:
-        if 'Debian GNU/Linux 12' in f.read():
-            return DebianInstaller
-
+    o, e = run_locally('lsb_release', '-d')
+    if b'Debian GNU/Linux 12' in o:
+        return DebianInstaller
 
 
 def main():
