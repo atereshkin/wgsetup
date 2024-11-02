@@ -143,9 +143,7 @@ def detect_ip():
 
 
 def get_installer():
-    o, e = run_locally('lsb_release', '-d')
-    if b'Debian GNU/Linux 12' in o:
-        return DebianInstaller
+    return DebianInstaller
 
 
 def main():
