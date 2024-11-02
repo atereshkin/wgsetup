@@ -143,6 +143,13 @@ def detect_ip():
     return ip
 
 
+def get_installer():
+    with open('/etc/issue', 'rt') as f:
+        if 'Debian GNU/Linux 12' in f.read():
+            return DebianInstaller
+
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='wgsetup',
@@ -156,8 +163,7 @@ def main():
     parser.add_argument('-p', '--port', type=int, default=51290, help='WireGuard port. Default is 51290.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print debug information')
     args = parser.parse_args()
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format='%(message)s')
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, stream=sys.stderr, format='%(message)s')
     server_address = args.server_address
     if server_address is None:
         try:
@@ -165,10 +171,16 @@ def main():
         except:
             log.error('Unable to detect server IP address. Use the -a/--server-address option.')
             return
-    i = DebianInstaller(runner=run_locally,
-                        server_address=server_address,
-                        network=args.network4,
-                        wg_listen_port=args.port)
+
+    Installer = get_installer()
+    if Installer is None:
+        log.error('Unsupported OS')
+        return
+
+    i = Installer(runner=run_locally,
+                  server_address=server_address,
+                  network=args.network4,
+                  wg_listen_port=args.port)
     i.install()
     print(i.get_client_config())
 
