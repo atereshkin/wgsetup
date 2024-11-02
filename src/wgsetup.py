@@ -1,7 +1,8 @@
+import argparse
 import ipaddress
 import logging
+import socket
 import subprocess
-import sys
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +20,10 @@ def run_locally(*args, input=None):
 
 class AbstractInstaller:
 
-    def __init__(self, runner, network=ipaddress.ip_network('10.12.1.0/24'), wg_listen_port=51290, server_address=None):
+    def __init__(self, runner, network=None, wg_listen_port=0, server_address=None):
+        assert server_address is not None
+        assert network is not None
+        assert wg_listen_port > 0
         self.run = runner
         self.network = network
         self.wg_listen_port = wg_listen_port
@@ -56,7 +60,7 @@ class AbstractInstaller:
         return self.get_server_vpn_address() + 1
 
     def get_client_subnet(self):
-        return ipaddress.ip_network(self.get_client_vpn_address(), 32)
+        return ipaddress.ip_network(self.get_client_vpn_address())
 
     def get_server_config(self):
         cfg = '[Interface]\n'
@@ -124,12 +128,44 @@ class DebianInstaller(AbstractInstaller):
         self.run('systemctl', 'enable', '--now', 'wg-quick@wg0')
         self.run('service', 'wg-quick@wg0', 'reload')
 
+
+def detect_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        s.connect(('1.1.1.1', 1))
+        ip = s.getsockname()[0]
+        if ipaddress.ip_address(ip).is_private:
+            raise ValueError(ip)
+    finally:
+        s.close()
+    return ip
+
+
 def main():
+    parser = argparse.ArgumentParser(
+        prog='wgsetup',
+        description='Configures the machine to be WireGuard VPN server routing all client traffic to the Internet')
+    parser.add_argument('-a', '--server-address',
+                        help='External address of the server that the client(s) will use to connect')
+    parser.add_argument('-n', '--network4', default='10.12.1.0/24', type=ipaddress.ip_network,
+                        help='IPv4 VPN subnet. '
+                             'This is where server and client(s) internal addresses will be allocated. '
+                             '10.12.1.0/24 if not specified.')
+    parser.add_argument('-p', '--port', type=int, default=51290, help='WireGuard port. Default is 51290.')
+    args = parser.parse_args()
+    server_address = args.server_address
+    if server_address is None:
+        try:
+            server_address = detect_ip()
+        except:
+            print('Unable to detect server IP address. Use the -a/--server-address option.')
     logging.getLogger('root').setLevel(logging.DEBUG)
     i = DebianInstaller(runner=run_locally,
-                        server_address=sys.argv[1])
+                        server_address=server_address,
+                        network=args.network4,
+                        wg_listen_port=args.port)
     i.install()
-    print('*********Client config************')
     print(i.get_client_config())
 
 
