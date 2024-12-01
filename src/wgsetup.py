@@ -107,7 +107,8 @@ class AbstractInstaller:
 
 class DebianInstaller(AbstractInstaller):
     def install_dependencies(self):
-        self.run('apt-get', '-y', 'install', 'wireguard', 'nftables')
+        self.run('apt-get', '-yq', 'update')
+        self.run('apt-get', '-yq', 'install', 'wireguard', 'nftables')
 
     def enable_forwarding(self):
         self.run('sysctl', '-w', 'net.ipv4.ip_forward=1')
