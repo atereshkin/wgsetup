@@ -169,12 +169,12 @@ def main():
             server_address = detect_ip()
         except:
             log.error('Unable to detect server IP address. Use the -a/--server-address option.')
-            return
+            sys.exit(1)
 
     Installer = get_installer()
     if Installer is None:
         log.error('Unsupported OS')
-        return
+        sys.exit(1)
 
     i = Installer(runner=run_locally,
                   server_address=server_address,
