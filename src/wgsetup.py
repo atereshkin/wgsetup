@@ -145,7 +145,7 @@ def detect_ip():
 
 def get_installer():
     o, e = run_locally('lsb_release', '-d')
-    if b'Debian GNU/Linux 12' in o:
+    if b'Debian GNU/Linux 12' in o or b'Ubuntu 22.04' in o:
         return DebianInstaller
 
 
